@@ -17,8 +17,7 @@ __global__ void vecAdd(float *A, float *B, float *C, int N) {
 
 	if (idx < N) C[idx] = A[idx] + B[idx];
 }
-int main() {
-	const int N = 1024;
+void unifiedMem(int N) {
 	float *A, *B, *C;
 	cudaMallocManaged(&A, N * sizeof(float));
 	cudaMallocManaged(&B, N * sizeof(float));
@@ -29,8 +28,8 @@ int main() {
 	for (int i = 0; i < N; i++) A[i] = distr(rnd);
 	for (int i = 0; i < N; i++) B[i] = distr(rnd);
 
-	const int threads = 256;
-	const int blocks = cuda::ceil_div(N, threads);
+	int threads = 256;
+	int blocks = cuda::ceil_div(N, threads);
 	vecAdd<<<blocks, threads>>>(A, B, C, N);
 	// usage for >1 dim : MatAdd<<<dim3(16, 16), dim3(8, 8)>>>
 
@@ -41,5 +40,48 @@ int main() {
 	cudaFree(A);
 	cudaFree(B);
 	cudaFree(C);
-	return 0;
+}
+
+void explicitMem(int N) {
+	float *A, *B, *C;
+	float *devA, *devB, *devC;
+
+	cudaMallocHost(&A, N * sizeof(float));
+	cudaMallocHost(&B, N * sizeof(float));
+	cudaMallocHost(&C, N * sizeof(float));
+	cudaMalloc(&devA, N * sizeof(float));
+	cudaMalloc(&devB, N * sizeof(float));
+	cudaMalloc(&devC, N * sizeof(float));
+
+	mt19937 rnd(123);
+	auto distr = uniform_real_distribution<float>();
+	for (int i = 0; i < N; i++) A[i] = distr(rnd);
+	for (int i = 0; i < N; i++) B[i] = distr(rnd);
+
+	cudaMemcpy(devA, A, N * sizeof(float));
+	cudaMemcpy(devB, B, N * sizeof(float));
+	cudaMemset(devA, 0, N * sizeof(float));
+
+	int threads = 256;
+	int blocks = cuda::ceil_div(N, threads);
+	vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
+
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(C, devC, N * sizeof(float));
+
+	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
+
+	cudaFree(devA);
+	cudaFree(devB);
+	cudaFree(devC);
+	cudaFreeHost(A);
+	cudaFreeHost(B);
+	cudaFreeHost(C);
+}
+
+int main() {
+	int N = 1024;
+	unifiedMem(N);
+	explicitMem(N);
 }
