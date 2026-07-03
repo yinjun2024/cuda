@@ -60,7 +60,7 @@ void explicitMem(int N) {
 
 	cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault);
 	cudaMemcpy(devB, B, N * sizeof(float), cudaMemcpyDefault);
-	cudaMemset(devA, 0, N * sizeof(float));
+	cudaMemset(devC, 0, N * sizeof(float));
 
 	int threads = 256;
 	int blocks = cuda::ceil_div(N, threads);
