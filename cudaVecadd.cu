@@ -58,8 +58,8 @@ void explicitMem(int N) {
 	for (int i = 0; i < N; i++) A[i] = distr(rnd);
 	for (int i = 0; i < N; i++) B[i] = distr(rnd);
 
-	cudaMemcpy(devA, A, N * sizeof(float));
-	cudaMemcpy(devB, B, N * sizeof(float));
+	cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault);
+	cudaMemcpy(devB, B, N * sizeof(float), cudaMemcpyDefault);
 	cudaMemset(devA, 0, N * sizeof(float));
 
 	int threads = 256;
@@ -68,7 +68,7 @@ void explicitMem(int N) {
 
 	cudaDeviceSynchronize();
 
-	cudaMemcpy(C, devC, N * sizeof(float));
+	cudaMemcpy(C, devC, N * sizeof(float), cudaMemcpyDefault);
 
 	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
 
