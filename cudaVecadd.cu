@@ -80,8 +80,29 @@ void explicitMem(int N) {
 	cudaFreeHost(C);
 }
 
+void cpu(int N) {
+	float *A, *B, *C;
+	A = new float[N];
+	B = new float[N];
+	C = new float[N];
+	
+	mt19937 rnd(123);
+	auto distr = uniform_real_distribution<float>();
+	for (int i = 0; i < N; i++) A[i] = distr(rnd);
+	for (int i = 0; i < N; i++) B[i] = distr(rnd);
+
+	for (int i = 0; i < N; i++) C[i] = A[i] + B[i];
+
+	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
+
+	delete[] A;
+	delete[] B;
+	delete[] C;
+}
+
 int main() {
 	int N = 1024;
+	cpu(N);
 	unifiedMem(N);
 	explicitMem(N);
 }
