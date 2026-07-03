@@ -19,9 +19,9 @@ __global__ void vecAdd(float *A, float *B, float *C) {
 int main() {
 	const int N = 1024;
 	float *A, *B, *C;
-	A = new float(N);
-	B = new float(N);
-	C = new float(N);
+	A = new float[N];
+	B = new float[N];
+	C = new float[N];
 	
 	mt19937 rnd(123);
 	auto distr = uniform_real_distribution<float>();
