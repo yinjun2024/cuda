@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include <cuda_runtime.h>
+#include <cuda/cmath>
 using namespace std;
 
 __global__ void vecAdd(float *A, float *B, float *C, int N) {
