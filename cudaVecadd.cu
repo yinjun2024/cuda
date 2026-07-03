@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 using namespace std;
 
-__global__ void vecAdd(float *A, float *B, float *C, int n) {
+__global__ void vecAdd(float *A, float *B, float *C) {
 	/*
 		threadIdx
 		blockDim
