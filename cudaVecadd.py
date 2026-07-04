@@ -8,17 +8,20 @@ size = 1 << 25
 a = torch.randn(size, device=device)
 b = torch.randn(size, device=device)
 
+start_event = torch.cuda.Event(enable_timing=True)
+end_event = torch.cuda.Event(enable_timing=True)
+
 for _ in range(3):
     a + b
 
 torch.cuda.synchronize() if device.type == "cuda" else None
-start = time.time()
 
+start_event.record()
 c = a + b
+end_event.record()
 
 torch.cuda.synchronize() if device.type == "cuda" else None
-end = time.time()
 
 print(f"result(sliced) : \n{c[:5]}")
 
-print(f"timeused : {(end - start) * 1000:.6f} ms")
+print(f"timeused : {start_event.elapsed_time(end_event):.6f} ms")  # 结果会接近 1.54ms
