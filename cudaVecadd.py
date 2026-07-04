@@ -13,8 +13,7 @@ end_event = torch.cuda.Event(enable_timing=True)
 
 for _ in range(3):
     a + b
-
-torch.cuda.synchronize() if device.type == "cuda" else None
+    torch.cuda.synchronize() if device.type == "cuda" else None
 
 start_event.record()
 c = a + b
