@@ -111,7 +111,7 @@ void cpu(int N) {
 }
 
 int main() {
-	int N = 1 << 20;
+	int N = 1 << 25;
 	// cpu(N);
 	// unifiedMem(N);
 	explicitMem(N);
