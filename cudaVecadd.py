@@ -21,4 +21,4 @@ end = time.time()
 
 print(f"result(sliced) : \n{c[:5]}")
 
-print(f"timeused : {(end - start) * 1000:.2f} ms")
+print(f"timeused : {(end - start) * 1000:.6f} ms")
