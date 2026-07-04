@@ -35,7 +35,7 @@ void unifiedMem(int N) {
 
 	cudaDeviceSynchronize();
 
-	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
+	// for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
 
 	cudaFree(A);
 	cudaFree(B);
@@ -64,13 +64,23 @@ void explicitMem(int N) {
 
 	int threads = 256;
 	int blocks = cuda::ceil_div(N, threads);
-	vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
 
+	for (int _ = 0; _ < 3; _++) {
+		vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
+		cudaDeviceSynchronize();
+	}
+
+	auto start = chrono::high_resolution_clock::now();
+	vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
 	cudaDeviceSynchronize();
+	auto end = chrono::high_resolution_clock::now();
+	chrono::duration<double, milli> dur = end - start;
+	printf("time used : %d ms\n", dur.count());
+
 
 	cudaMemcpy(C, devC, N * sizeof(float), cudaMemcpyDefault);
 
-	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
+	// for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
 
 	cudaFree(devA);
 	cudaFree(devB);
@@ -93,7 +103,7 @@ void cpu(int N) {
 
 	for (int i = 0; i < N; i++) C[i] = A[i] + B[i];
 
-	for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
+	// for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
 
 	delete[] A;
 	delete[] B;
@@ -101,8 +111,8 @@ void cpu(int N) {
 }
 
 int main() {
-	int N = 1024;
-	cpu(N);
+	int N = 1 << 20;
+	// cpu(N);
 	unifiedMem(N);
-	explicitMem(N);
+	// explicitMem(N);
 }
