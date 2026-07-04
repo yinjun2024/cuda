@@ -75,7 +75,7 @@ void explicitMem(int N) {
 	cudaDeviceSynchronize();
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
-	printf("time used : %d ms\n", dur.count());
+	printf("time used : %lf ms\n", dur.count());
 
 
 	cudaMemcpy(C, devC, N * sizeof(float), cudaMemcpyDefault);
