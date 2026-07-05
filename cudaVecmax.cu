@@ -19,7 +19,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	F(512) F(256) F(128) F(64)
 	#undef F
 
-	#define G(x) if (pos + x < npos) s[pos] = max(s[pos], x[pos + x]);
+	#define G(x) if (pos + x < npos) s[pos] = max(s[pos], s[pos + x]);
 	if (pos < 32) {
 		if (blockSize >= 2 * 32) G(32)
 		G(16) G(8); G(4) G(2) G(1)
