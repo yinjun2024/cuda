@@ -34,8 +34,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 		val = max(val, a4[i].z);
 		val = max(val, a4[i].w);
 	}
-	int nbas = n4 << 2;
-	for (int i = nbas + idx; i < n; i += blockSize * gridDim.x) {
+	for (int i = (n4 << 2) + idx; i < n; i += blockSize * gridDim.x) {
 		val = max(val, a[i]);
 	}
 	
