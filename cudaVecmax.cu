@@ -8,22 +8,22 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	__shared__ float s[blockSize]; 
 
 	int idx = threadIdx.x + blockSize * blockIdx.x;
-	int pos = threadIdx.x;
+	int tid = threadIdx.x;
 
 	float val = FLT_MIN;
 	for (int i = idx; i < n; i += blockSize * gridDim.x) {
 		val = max(val, a[i]);
-	} s[pos] = val; __syncthreads();
+	} s[tid] = val; __syncthreads();
 
-	#define F(x) if (blockSize >= 2 * x) {if (pos < x) s[pos] = max(s[pos], s[pos + x]); __syncthreads();}
+	#define F(x) if (blockSize >= 2 * x) {if (tid < x) s[tid] = max(s[tid], s[tid + x]); __syncthreads();}
 	F(512) F(256) F(128) F(64)
 	#undef F
 
-	#define G(x) if (blockSize >= 2 * x && pos < x) s[pos] = max(s[pos], s[pos + x]);
+	#define G(x) if (blockSize >= 2 * x && tid < x) s[tid] = max(s[tid], s[tid + x]);
 	G(32) G(16) G(8); G(4) G(2) G(1)
 	#undef G
 
-	if (pos == 0) b[blockIdx.x] = s[0];
+	if (tid == 0) b[blockIdx.x] = s[0];
 }
 
 void Vecmaxreduce(int N) {
