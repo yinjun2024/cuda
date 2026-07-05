@@ -28,6 +28,39 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	}
 }
 
+template<int blockSize>
+__global__ void maxReduce_deepseek(float *a, float *b, int n) {
+    __shared__ float s[blockSize];
+    int tid = threadIdx.x;
+    
+    // 1. 多元素加载 + __ldg
+    float maxVal = -FLT_MAX;
+    for (int i = blockIdx.x * blockSize + tid; i < n; i += blockSize * gridDim.x) {
+        maxVal = max(maxVal, __ldg(&a[i]));
+    }
+    s[tid] = maxVal;
+    __syncthreads();
+
+    // 2. Shared Memory 规约 (log2 折叠)
+    for (int offset = blockSize / 2; offset > 32; offset >>= 1) {
+        if (tid < offset) {
+            s[tid] = max(s[tid], s[tid + offset]);
+        }
+        __syncthreads();
+    }
+
+    // 3. Warp Shuffle 规约
+    if (tid < 32) {
+        float val = s[tid];
+        val = max(val, __shfl_down_sync(0xffffffff, val, 16));
+        val = max(val, __shfl_down_sync(0xffffffff, val, 8));
+        val = max(val, __shfl_down_sync(0xffffffff, val, 4));
+        val = max(val, __shfl_down_sync(0xffffffff, val, 2));
+        val = max(val, __shfl_down_sync(0xffffffff, val, 1));
+        if (tid == 0) b[blockIdx.x] = val;
+    }
+}
+
 void Vecmaxreduce(int N) {
 	constexpr int threads = 256;
 	int blocks = cuda::ceil_div(N, 8 * threads);
@@ -46,12 +79,12 @@ void Vecmaxreduce(int N) {
 	cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault);
 
 	for (int _ = 0; _ < 3; _++) {
-		maxReduce<threads><<<blocks, threads>>>(devA, devB, N);
+		maxReduce_deepseek<threads><<<blocks, threads>>>(devA, devB, N);
 		cudaDeviceSynchronize();
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	maxReduce<threads><<<blocks, threads>>>(devA, devB, N);
+	maxReduce_deepseek<threads><<<blocks, threads>>>(devA, devB, N);
 	cudaDeviceSynchronize();
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
