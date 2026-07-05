@@ -10,7 +10,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	int idx = threadIdx.x + blockSize * blockIdx.x;
 	int pos = threadIdx.x;
 
-	float val = -FLT_MAX;
+	float val = FLT_MIN;
 	for (int i = idx; i < n; i += blockSize * gridDim.x) {
 		val = max(val, a[i]);
 	} s[pos] = val; __syncthreads();
