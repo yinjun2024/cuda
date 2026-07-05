@@ -19,11 +19,13 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	F(512) F(256) F(128) F(64)
 	#undef F
 
-	#define G(x) if (blockSize >= 2 * x && tid < x) s[tid] = max(s[tid], s[tid + x]);
-	G(32) G(16) G(8); G(4) G(2) G(1)
-	#undef G
-
-	if (tid == 0) b[blockIdx.x] = s[0];
+	if (tid < 32) {
+		float val = max(s[tid], s[tid + 32]);
+		#define G(x) val = max(val, __shfl_down_sync(0xffffffff, val, x));
+		G(16) G(8) G(4) G(2) G(1)
+		#undef G
+		if (tid == 0) b[blockIdx.x] = val;
+	}
 }
 
 void Vecmaxreduce(int N) {
