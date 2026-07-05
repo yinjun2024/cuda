@@ -20,7 +20,10 @@ __global__ void maxReduce(float *a, float *b, int n) {
 
 	float val = FLT_MIN;
 	for (int i = idx; i < n4; i += blockSize * gridDim.x) {
-		val = max({val, a4[i].x, a4[i].y, a4[i].z, a4[i].w});
+		val = max(val, a4[i].x);
+		val = max(val, a4[i].y);
+		val = max(val, a4[i].z);
+		val = max(val, a4[i].w);
 	}
 	int nbas = n4 << 2;
 	for (int i = nbas + idx; i < n; i += blockSize * gridDim.x) {
