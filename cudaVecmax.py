@@ -11,11 +11,11 @@ start_event = torch.cuda.Event(enable_timing=True)
 end_event = torch.cuda.Event(enable_timing=True)
 
 for _ in range(3):
-    torch.reduce_max(a)
+    torch.max(a)
     torch.cuda.synchronize() if device.type == "cuda" else None
 
 start_event.record()
-c = torch.reduce_max(a)
+c = torch.max(a)
 end_event.record()
 
 torch.cuda.synchronize() if device.type == "cuda" else None
