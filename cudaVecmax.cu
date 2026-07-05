@@ -40,7 +40,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	}
 	
 	val = maxReduceWarp(val);
-	__shared__ float tmp[];
+	extern __shared__ float tmp[];
 	if ((tid & 0x1f) == 0) tmp[tid >> 5] = val;
 	__syncthreads();
 	
