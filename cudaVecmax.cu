@@ -40,7 +40,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	}
 	
 	val = maxReduceWarp(val);
-	__shared__ float tmp[32];
+	__shared__ float tmp[];
 	if ((tid & 0x1f) == 0) tmp[tid >> 5] = val;
 	__syncthreads();
 	
@@ -69,12 +69,12 @@ void Vecmaxreduce(int N) {
 	CUDA_CHECK(cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault));
 
 	for (int _ = 0; _ < 3; _++) {
-		maxReduce<threads><<<blocks, threads>>>(devA, devB, N);
+		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, devB, N);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	maxReduce<threads><<<blocks, threads>>>(devA, devB, N);
+	maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, devB, N);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
