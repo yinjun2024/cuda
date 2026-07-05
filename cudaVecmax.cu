@@ -3,10 +3,11 @@
 #include <cuda/cmath>
 using namespace std;
 
-__device__ void maxReduceWarp(float val) {
+__device__ float maxReduceWarp(float val) {
 	#define G(x) val = max(val, __shfl_down_sync(0xffffffff, val, x));
 	G(16) G(8) G(4) G(2) G(1)
 	#undef G
+	return val;
 }
 
 template<int blockSize>
