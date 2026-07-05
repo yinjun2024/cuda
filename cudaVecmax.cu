@@ -12,13 +12,19 @@ __device__ float maxReduceWarp(float val) {
 
 template<int blockSize>
 __global__ void maxReduce(float *a, float *b, int n) {
+	float4 *a4 = reinterpret_cast<float4*>(a);
+	int n4 = n >> 2;
 	int idx = threadIdx.x + blockSize * blockIdx.x;
 	int tid = threadIdx.x;
 	int warpNum = cuda::ceil_div(blockSize, 32);
 
 	float val = FLT_MIN;
-	for (int i = idx; i < n; i += blockSize * gridDim.x) {
-		val = max(val, __ldg(a + i));
+	for (int i = idx; i < n4; i += blockSize * gridDim.x) {
+		val = max({val, a4[i].x, a4[i].y, a4[i].z, a4[i].w});
+	}
+	int nbas = n4 << 2;
+	for (int i = nbas + idx; i < n; i += blockSize * gridDim.x) {
+		val = max(val, a[i]);
 	}
 	
 	val = maxReduceWarp(val);
