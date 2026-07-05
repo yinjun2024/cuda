@@ -12,7 +12,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 
 	float val = FLT_MIN;
 	for (int i = idx; i < n; i += blockSize * gridDim.x) {
-		val = max(val, a[i]);
+		val = max(val, __ldg(a + i));
 	} s[tid] = val; __syncthreads();
 
 	#define F(x) if (blockSize >= 2 * x) {if (tid < x) s[tid] = max(s[tid], s[tid + x]); __syncthreads();}
