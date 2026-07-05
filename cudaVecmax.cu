@@ -28,7 +28,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 
 void Vecmaxreduce(int N) {
 	constexpr int threads = 256;
-	int blocks = cuda::ceil_div(N, 2 * threads);
+	int blocks = cuda::ceil_div(N, 8 * threads);
 
 	float *A;
 	float *devA, *devB;
