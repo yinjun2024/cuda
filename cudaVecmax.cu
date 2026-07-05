@@ -43,7 +43,7 @@ __global__ void maxReduce(float *a, float *b, int n) {
 }
 
 void Vecmaxreduce(int N) {
-	constexpr int threads = 256;
+	constexpr int threads = 128;
 	int blocks = min(cuda::ceil_div(N, threads), 2560 * 4); // tesla T4
 
 	float *A;
