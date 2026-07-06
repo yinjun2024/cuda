@@ -32,7 +32,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 
 		#pragma unroll
 		for (int k = 0; k < blockSize; k++) {
-			ans += AsT[threadIdx.x][k] * Bs[k][threadIdx.y];
+			ans += AsT[k][threadIdx.x] * Bs[k][threadIdx.y];
 		}
 		if (i + blockSize < K) __syncthreads();
 	}
