@@ -28,11 +28,11 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			Bs[threadIdx.x][threadIdx.y] = B[(threadIdx.x + i) * M + idxy];
 		}
 		else Bs[threadIdx.x][threadIdx.y] = 0;
-		__syncthreads();
+		// __syncthreads();
 
-		for (int k = 0; k < blockSize; k++) {
-			ans += As[threadIdx.x][k] * Bs[k][threadIdx.y];
-		}
+		// for (int k = 0; k < blockSize; k++) {
+		// 	ans += As[threadIdx.x][k] * Bs[k][threadIdx.y];
+		// }
 		if (i + blockSize < K) __syncthreads();
 	}
 	if (idxx < N && idxy < M) C[idxx * M + idxy] = ans;
