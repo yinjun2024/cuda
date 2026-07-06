@@ -80,5 +80,5 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	Matmul(1 << 11, 1 << 11, 1 << 11);
+	Matmul(1 << 12, 1 << 12, 1 << 12);
 }
