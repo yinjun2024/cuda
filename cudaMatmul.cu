@@ -35,7 +35,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 		}
 		if (i + blockSize < K) __syncthreads();
 	}
-	if (idxx < N && idxy < M) C[idxx * M + idxy] = res;
+	if (idxx < N && idxy < M) C[idxx * M + idxy] = ans;
 }
 
 void Matmul(int N, int M, int K) {
@@ -55,14 +55,17 @@ void Matmul(int N, int M, int K) {
 
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
+	
+	dim3 threads(32, 32);
+	dim3 blocks(cuda::ceil_div(N, 32), cuda::ceil_div(M, 32));
 
 	for (int _ = 0; _ < 3; _++) {
-		// do
+		Matmul<32><<<blocks, threads>>>(devA, devB, devC, N, M, K);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	// do
+	Matmul<32><<<blocks, threads>>>(devA, devB, devC, N, M, K);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
