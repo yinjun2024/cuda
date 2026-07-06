@@ -57,16 +57,17 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
 	
-	dim3 threads(32, 32);
-	dim3 blocks(cuda::ceil_div(N, 32), cuda::ceil_div(M, 32));
+	constexpr int B = 8;
+	dim3 threads(8, 8);
+	dim3 blocks(cuda::ceil_div(N, 8), cuda::ceil_div(M, 8));
 
 	for (int _ = 0; _ < 3; _++) {
-		Matmul<32><<<blocks, threads>>>(devA, devB, devC, N, M, K);
+		Matmul<8><<<blocks, threads>>>(devA, devB, devC, N, M, K);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	Matmul<32><<<blocks, threads>>>(devA, devB, devC, N, M, K);
+	Matmul<8><<<blocks, threads>>>(devA, devB, devC, N, M, K);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
