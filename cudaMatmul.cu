@@ -57,7 +57,7 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
 	
-	constexpr int blockSize = 8;
+	constexpr int blockSize = 16;
 	dim3 threads(blockSize, blockSize);
 	dim3 blocks(cuda::ceil_div(N, blockSize), cuda::ceil_div(M, blockSize));
 
