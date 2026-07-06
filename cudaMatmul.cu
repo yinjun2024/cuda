@@ -17,22 +17,23 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// ensure : threads(blockSize, blockSize)
 	int idxx = threadIdx.x + blockSize * blockIdx.x;
 	int idxy = threadIdx.y + blockSize * blockIdx.y;
-	__shared__ float As[blockSize][blockSize], Bs[blockSize][blockSize];
+	__shared__ float AsT[blockSize][blockSize], Bs[blockSize][blockSize];
 	float ans = 0;
 	for (int i = 0; i < K; i += blockSize) {
 		if (idxx < N && threadIdx.y + i < K) {
-			As[threadIdx.x][threadIdx.y] = A[idxx * K + i + threadIdx.y];
+			AsT[threadIdx.y][threadIdx.x] = A[idxx * K + threadIdx.y + i];
 		}
-		else As[threadIdx.x][threadIdx.y] = 0;
+		else AsT[threadIdx.y][threadIdx.x] = 0;
 		if (threadIdx.x + i < K && idxy < M) {
 			Bs[threadIdx.x][threadIdx.y] = B[(threadIdx.x + i) * M + idxy];
 		}
 		else Bs[threadIdx.x][threadIdx.y] = 0;
-		// __syncthreads();
+		__syncthreads();
 
-		// for (int k = 0; k < blockSize; k++) {
-		// 	ans += As[threadIdx.x][k] * Bs[k][threadIdx.y];
-		// }
+		#pragma unroll
+		for (int k = 0; k < blockSize; k++) {
+			ans += AsT[threadIdx.x][k] * Bs[k][threadIdx.y];
+		}
 		if (i + blockSize < K) __syncthreads();
 	}
 	if (idxx < N && idxy < M) C[idxx * M + idxy] = ans;
