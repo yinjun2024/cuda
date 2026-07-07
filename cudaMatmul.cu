@@ -35,12 +35,12 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 		#pragma unroll
 		for (int i = 0; i < CA; i++) {
 			int x = Ax + BAx * i + Sx, y = Ay + k;
-			As[i][Ay] = x < N && y < K ? A[x * K + y] : 0;
+			As[Ax + BAx * i][Ay] = x < N && y < K ? A[x * K + y] : 0;
 		}
 		#pragma unroll
 		for (int i = 0; i < CB; i++) {
 			int x = Bx + k, y = By + BBy * i + Sy;
-			Bs[Bx][i] = x < K && y < M ? B[x * M + y] : 0;
+			Bs[Bx][By + BBy * i] = x < K && y < M ? B[x * M + y] : 0;
 		}
 		__syncthreads();
 
