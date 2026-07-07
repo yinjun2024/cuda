@@ -17,15 +17,15 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// ensure : threads(BS * BS), blocks(N / BN, M / BM)
 	// recommend : <128, 128, 8, 16>
 
-	constexpr int BAy = BK, BAx = BL * BL / BAy;
-	constexpr int BBx = BK, BBy = BL * BL / BBx;
+	constexpr int BAy = BK, BAx = BS * BS / BAy;
+	constexpr int BBx = BK, BBy = BS * BS / BBx;
 	constexpr int BCx = BN / BS, BCy = BM / BS;
 	constexpr int CA = BN / BAx, CB = BM / BBy;
 
 	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
 	int Bx = threadIdx.x / BBy, By = threadIdx.x % BBy;
-	int Cx = threadIdx.x / BCy, Cy = threadIdx.x % BCy;
-	Cx *= BL; Cy *= BL;
+	int Cx = threadIdx.x / BS, Cy = threadIdx.x % BS;
+	Cx *= BCx; Cy *= BCy;
 	int Sx = blockIdx.x * BN, Sy = blockIdx.y * BM;
 	
 	__shared__ float As[BN][BK], Bs[BK][BM];
