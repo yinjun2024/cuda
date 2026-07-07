@@ -57,7 +57,7 @@ void explicitMem(int N) {
 	cudaMalloc(&devC, N * sizeof(float));
 
 	mt19937 rnd(123);
-	auto distr = uniform_real_distribution<float>();
+	auto distr = uniform_real_distribution<float>(-1, 1);
 	for (int i = 0; i < N; i++) A[i] = distr(rnd);
 	for (int i = 0; i < N; i++) B[i] = distr(rnd);
 

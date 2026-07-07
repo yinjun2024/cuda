@@ -74,7 +74,7 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaMalloc(&devC, N * M * sizeof(float)));
 
 	mt19937 rnd(123);
-	auto distr = uniform_real_distribution<float>();
+	auto distr = uniform_real_distribution<float>(-1, 1);
 	for (int i = 0; i < N * K; i++) A[i] = distr(rnd);
 	for (int i = 0; i < K * M; i++) B[i] = distr(rnd);
 
