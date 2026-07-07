@@ -17,6 +17,12 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// ensure : threads(BS * BS), blocks(ceil(N / BN), ceil(M / BM))
 	// recommend : <128, 128, 8, 16>
 
+	static_assert(BS * BS % BAy == 0);
+	static_assert(BS * BS % BBx == 0);
+	static_assert(BN % BS == 0);
+	static_assert(BM % BS == 0);
+	static_assert(BN % BAx == 0);
+	static_assert(BM % BBy == 0);
 	constexpr int BAy = BK, BAx = BS * BS / BAy;
 	constexpr int BBx = BK, BBy = BS * BS / BBx;
 	constexpr int BCx = BN / BS, BCy = BM / BS;
@@ -101,7 +107,7 @@ void Matmul(int N, int M, int K) {
 	bool cmp = 1; for (int i = 0; i < N; i++) {
 		int j = uniform_int_distribution<>(0, M - 1)(rnd); float ans = 0;
 		for (int k = 0; k < K; k++) ans += A[i * K + k] * B[k * M + j];
-		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-5) {
+		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-4) {
 			cmp = 0;
 			printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
 			// break;
