@@ -52,8 +52,6 @@ __global__ void maxReduce(float *a, int n) {
 
 template<int threads>
 void Vecmaxreduce(int N) {
-	int blocks = ; // tesla T4
-
 	float *A;
 	float *devA;
 
