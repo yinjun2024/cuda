@@ -14,7 +14,7 @@ using namespace std;
 
 template<int BN, int BM, int BK, int BS>
 __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
-	// ensure : threads(BS * BS), blocks(N / BN, M / BM)
+	// ensure : threads(BS * BS), blocks(ceil(N / BN), ceil(M / BM))
 	// recommend : <128, 128, 8, 16>
 
 	constexpr int BAy = BK, BAx = BS * BS / BAy;
@@ -101,7 +101,10 @@ void Matmul(int N, int M, int K) {
 	bool cmp = 1; for (int i = 0; i < N; i++) {
 		int j = uniform_int_distribution<>(0, M - 1)(rnd); float ans = 0;
 		for (int k = 0; k < K; k++) ans += A[i * K + k] * B[k * M + j];
-		if (fabs(C[i * M + j] - ans) > 1e-9) {cmp = 0; break;}
+		if (fabs(C[i * M + j] - ans) > 1e-9) {
+			printf("%d %d -> %f %f\n", i, j, C[i * M + j], ans);
+			cmp = 0; break;
+		}
 	}
 	if (cmp) fprintf(stderr, "Correct!\n");
 	else fprintf(stderr, "Result Mismatch!\n");
