@@ -12,31 +12,52 @@ using namespace std;
     } \
 } while(0)
 
-template<int blockSize>
+template<int BN, int BM, int BK, int B>
 __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
-	// ensure : threads(blockSize, blockSize)
-	int idxx = threadIdx.x + blockSize * blockIdx.x;
-	int idxy = threadIdx.y + blockSize * blockIdx.y;
-	__shared__ float AsT[blockSize][blockSize], Bs[blockSize][blockSize];
-	float ans = 0;
-	for (int i = 0; i < K; i += blockSize) {
-		if (idxx < N && threadIdx.y + i < K) {
-			AsT[threadIdx.y][threadIdx.x] = A[idxx * K + threadIdx.y + i];
+	// ensure : threads(B * B), blocks(N / BN, M / BM)
+	// recommend : <128, 128, 8, 16>
+
+	constexpr int BAy = BK, BAx = B * B / BAy;
+	constexpr int BBx = BK, BBy = B * B / BBx;
+	constexpr int BCx = BN / B, BCy = BM / B;
+	constexpr int CA = BN / BAx, CB = BM / BBy;
+
+	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
+	int Bx = threadIdx.x / BBy, By = threadIdx.x % BBy;
+	int Cx = threadIdx.x / B, Cy = threadIdx.x % B;
+	Cx *= B; Cy *= B;
+	int Sx = blockIdx.x * BN, Sy = blockIdx.y * BM;
+	
+	__shared__ float As[BN][BK], Bs[BK][BM];
+	float Areg[BCx], Breg[BCy], Creg[BCx][BCy] = {0};
+	
+	for (int k = 0; k < K; k += BK) {
+		#pragma unroll
+		for (int i = 0; i < CA; i++) {
+			int x = Ax + BAx * i + Sx, y = Ay + k;
+			As[i][Ay] = x < N && y < K ? A[x * K + y] : 0;
 		}
-		else AsT[threadIdx.y][threadIdx.x] = 0;
-		if (threadIdx.x + i < K && idxy < M) {
-			Bs[threadIdx.x][threadIdx.y] = B[(threadIdx.x + i) * M + idxy];
+		#pragma unroll
+		for (int i = 0; i < CB; i++) {
+			int x = Bx + k, y = By + BBy * i + Sy;
+			Bs[Bx][i] = x < K && y < M ? B[x * M + y] : 0;
 		}
-		else Bs[threadIdx.x][threadIdx.y] = 0;
 		__syncthreads();
 
-		#pragma unroll
-		for (int k = 0; k < blockSize; k++) {
-			ans += AsT[k][threadIdx.x] * Bs[k][threadIdx.y];
+		for (int x = 0; x < BK; x++) {
+			for (int _ = 0; _ < BCx; _++) Areg[_] = As[_ + Cx][x];
+			for (int _ = 0; _ < BCy; _++) Breg[_] = Bs[x][_ + Cy];
+			for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
+				Creg[i][j] += Areg[i] * Breg[j];
+			}
 		}
-		if (i + blockSize < K) __syncthreads();
+		if (k + BK < K) __syncthreads();
 	}
-	if (idxx < N && idxy < M) C[idxx * M + idxy] = ans;
+
+	for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
+		int x = i + Cx + Sx, y = j + Cy + Sy;
+		if (x < N && y < M) C[x * M + y] = Creg[i][j];
+	}
 }
 
 void Matmul(int N, int M, int K) {
