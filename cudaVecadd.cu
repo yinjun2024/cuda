@@ -65,7 +65,7 @@ void explicitMem(int N) {
 	int threads = 256;
 	int blocks = cuda::ceil_div(N, threads);
 
-	for (int _ = 0; _ < 3; _++) {
+	for (int _ = 0; _ < 15; _++) {
 		vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
 		cudaDeviceSynchronize();
 	}
@@ -77,9 +77,12 @@ void explicitMem(int N) {
 	chrono::duration<double, milli> dur = end - start;
 	printf("time used : %lf ms\n", dur.count());
 
-
 	cudaMemcpy(C, devC, N * sizeof(float), cudaMemcpyDefault);
 
+	float *ans = new float[N];
+	for (int i = 0; i < N; i++) ans[i] = A[i] + B[i];
+	if (memcmp(ans, C, N * sizeof(float)) == 0) fprintf(stderr, "Correct!\n");
+	else fprintf(stderr, "Result Mismatch!\n");
 	// for (int i = 0; i < N; i++) printf("%f%c", C[i], " \n"[i + 1 == N]);
 
 	cudaFree(devA);
@@ -111,7 +114,7 @@ void cpu(int N) {
 }
 
 int main() {
-	int N = 1 << 25;
+	int N = 1 << 27;
 	// cpu(N);
 	// unifiedMem(N);
 	explicitMem(N);
