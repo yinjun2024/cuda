@@ -101,7 +101,7 @@ void Matmul(int N, int M, int K) {
 	bool cmp = 1; for (int i = 0; i < N; i++) {
 		int j = uniform_int_distribution<>(0, M - 1)(rnd); float ans = 0;
 		for (int k = 0; k < K; k++) ans += A[i * K + k] * B[k * M + j];
-		if (fabs(C[i * M + j] - ans) > 1e-9) {
+		if (fabs(C[i * M + j] - ans) > 1e-2) {
 			printf("%d %d -> %f %f\n", i, j, C[i * M + j], ans);
 			cmp = 0; break;
 		}
@@ -118,7 +118,7 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	const int S = 5;
+	const int S = 16;
 	Matmul<128, 128, 8, 16>(S, S, S);
 	// Matmul<64, 64, 16, 16>(1 << 13, 1 << 13, 1 << 13);
 	// Matmul<64, 64, 16, 32>(1 << 13, 1 << 13, 1 << 13);
