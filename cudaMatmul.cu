@@ -21,11 +21,11 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	static_assert(BS * BS % BBx == 0);
 	static_assert(BN % BS == 0);
 	static_assert(BM % BS == 0);
-	static_assert(BN % BAx == 0);
-	static_assert(BM % BBy == 0);
 	constexpr int BAy = BK, BAx = BS * BS / BAy;
 	constexpr int BBx = BK, BBy = BS * BS / BBx;
 	constexpr int BCx = BN / BS, BCy = BM / BS;
+	static_assert(BN % BAx == 0);
+	static_assert(BM % BBy == 0);
 	constexpr int CA = BN / BAx, CB = BM / BBy;
 
 	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
