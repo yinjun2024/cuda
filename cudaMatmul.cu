@@ -118,7 +118,7 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	const int S = 16;
+	const int S = 1 << 13;
 	Matmul<128, 128, 8, 16>(S, S, S);
 	// Matmul<64, 64, 16, 16>(1 << 13, 1 << 13, 1 << 13);
 	// Matmul<64, 64, 16, 32>(1 << 13, 1 << 13, 1 << 13);
