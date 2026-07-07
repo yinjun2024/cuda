@@ -17,6 +17,8 @@ __global__ void vecAdd(float *A, float *B, float *C, int N) {
 
 	if (idx < N) C[idx] = A[idx] + B[idx];
 }
+
+/*
 void unifiedMem(int N) {
 	float *A, *B, *C;
 	cudaMallocManaged(&A, N * sizeof(float));
@@ -41,6 +43,7 @@ void unifiedMem(int N) {
 	cudaFree(B);
 	cudaFree(C);
 }
+*/
 
 void explicitMem(int N) {
 	float *A, *B, *C;
@@ -93,6 +96,7 @@ void explicitMem(int N) {
 	cudaFreeHost(C);
 }
 
+/*
 void cpu(int N) {
 	float *A, *B, *C;
 	A = new float[N];
@@ -112,6 +116,7 @@ void cpu(int N) {
 	delete[] B;
 	delete[] C;
 }
+*/
 
 int main() {
 	int N = 1 << 27;

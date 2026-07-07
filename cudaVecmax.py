@@ -10,7 +10,7 @@ a = torch.randn(size, device=device)
 start_event = torch.cuda.Event(enable_timing=True)
 end_event = torch.cuda.Event(enable_timing=True)
 
-for _ in range(3):
+for _ in range(15):
     torch.max(a)
     torch.cuda.synchronize() if device.type == "cuda" else None
 

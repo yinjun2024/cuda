@@ -20,7 +20,7 @@ __device__ float maxReduceWarp(float val) {
 }
 
 template<int blockSize>
-__global__ void maxReduce(float *a, float *b, int n) {
+__global__ void maxReduce(float *a, int n) {
 	float4 *a4 = reinterpret_cast<float4*>(a);
 	int n4 = n >> 2;
 	int idx = threadIdx.x + blockSize * blockIdx.x;
@@ -46,20 +46,19 @@ __global__ void maxReduce(float *a, float *b, int n) {
 	if (tid < 32) {
 		if (tid < warpNum) val = tmp[tid]; else val = FLT_MIN;
 		val = maxReduceWarp(val);
-		if (tid == 0) b[blockIdx.x] = val;
+		if (tid == 0) a[blockIdx.x] = val;
 	}
 }
 
+template<int threads>
 void Vecmaxreduce(int N) {
-	constexpr int threads = 128;
-	int blocks = min(cuda::ceil_div(N, threads), 2560 * 4); // tesla T4
+	int blocks = ; // tesla T4
 
 	float *A;
-	float *devA, *devB;
+	float *devA;
 
 	CUDA_CHECK(cudaMallocHost(&A, N * sizeof(float)));
 	CUDA_CHECK(cudaMalloc(&devA, N * sizeof(float)));
-	CUDA_CHECK(cudaMalloc(&devB, cuda::ceil_div(N, threads) * sizeof(float)));
 
 	mt19937 rnd(123);
 	auto distr = uniform_real_distribution<float>();
@@ -67,24 +66,39 @@ void Vecmaxreduce(int N) {
 
 	CUDA_CHECK(cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault));
 
-	for (int _ = 0; _ < 3; _++) {
-		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, devB, N);
-		CUDA_CHECK(cudaDeviceSynchronize());
+	for (int _ = 0; _ < 15; _++) {
+		int M = N; while (M > 1) {
+			int M2 = cuda::ceil_div(N, threads);
+			int blocks = min(M2, 2560 * 4); // tesla T4
+			maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, N);
+			CUDA_CHECK(cudaDeviceSynchronize());
+		}
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, devB, N);
-	CUDA_CHECK(cudaDeviceSynchronize());
+	int M = N; while (M > 1) {
+		int M2 = cuda::ceil_div(N, threads);
+		int blocks = min(M2, 2560 * 4); // tesla T4
+		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, N);
+		CUDA_CHECK(cudaDeviceSynchronize());
+	}
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
 	printf("time used : %lf ms\n", dur.count());
 
+	float result;
+	CUDA_CHECK(cudaMemcpy(&result, devA, sizeof(float), cudaMemcpyDefault));
+
+	float ans = FLT_MIN;
+	for (int i = 0; i < N; i++) ans = max(ans, A[i]);
+	
+	if (ans == result) fprintf(stderr, "Correct!\n");
+	else fprintf(stderr, "Result Mismatch!\n");
 
 	CUDA_CHECK(cudaFree(devA));
-	CUDA_CHECK(cudaFree(devB));
 	CUDA_CHECK(cudaFreeHost(A));
 }
 
 int main() {
-	Vecmaxreduce(1 << 27);
+	Vecmaxreduce<128>(1 << 27);
 }
