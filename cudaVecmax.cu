@@ -66,10 +66,11 @@ void Vecmaxreduce(int N) {
 
 	for (int _ = 0; _ < 15; _++) {
 		int M = N; while (M > 1) {
-			int M2 = cuda::ceil_div(N, threads);
+			int M2 = cuda::ceil_div(M, threads);
 			int blocks = min(M2, 2560 * 4); // tesla T4
-			maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, N);
+			maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, M);
 			CUDA_CHECK(cudaDeviceSynchronize());
+			M = M2;
 		}
 	}
 
@@ -77,8 +78,9 @@ void Vecmaxreduce(int N) {
 	int M = N; while (M > 1) {
 		int M2 = cuda::ceil_div(N, threads);
 		int blocks = min(M2, 2560 * 4); // tesla T4
-		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, N);
+		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, M);
 		CUDA_CHECK(cudaDeviceSynchronize());
+		M = M2;
 	}
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
