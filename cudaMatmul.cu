@@ -44,13 +44,13 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 		}
 		__syncthreads();
 
-		// for (int x = 0; x < BK; x++) {
-		// 	for (int _ = 0; _ < BCx; _++) Areg[_] = As[_ + Cx][x];
-		// 	for (int _ = 0; _ < BCy; _++) Breg[_] = Bs[x][_ + Cy];
-		// 	for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
-		// 		Creg[i][j] += Areg[i] * Breg[j];
-		// 	}
-		// }
+		for (int x = 0; x < BK; x++) {
+			for (int _ = 0; _ < BCx; _++) Areg[_] = As[_ + Cx][x];
+			for (int _ = 0; _ < BCy; _++) Breg[_] = Bs[x][_ + Cy];
+			for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
+				Creg[i][j] += Areg[i] * Breg[j];
+			}
+		}
 		if (k + BK < K) __syncthreads();
 	}
 
