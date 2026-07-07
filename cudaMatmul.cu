@@ -44,20 +44,20 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 		}
 		__syncthreads();
 
-		for (int x = 0; x < BK; x++) {
-			for (int _ = 0; _ < BCx; _++) Areg[_] = As[_ + Cx][x];
-			for (int _ = 0; _ < BCy; _++) Breg[_] = Bs[x][_ + Cy];
-			for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
-				Creg[i][j] += Areg[i] * Breg[j];
-			}
-		}
+		// for (int x = 0; x < BK; x++) {
+		// 	for (int _ = 0; _ < BCx; _++) Areg[_] = As[_ + Cx][x];
+		// 	for (int _ = 0; _ < BCy; _++) Breg[_] = Bs[x][_ + Cy];
+		// 	for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
+		// 		Creg[i][j] += Areg[i] * Breg[j];
+		// 	}
+		// }
 		if (k + BK < K) __syncthreads();
 	}
 
-	for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
-		int x = i + Cx + Sx, y = j + Cy + Sy;
-		if (x < N && y < M) C[x * M + y] = Creg[i][j];
-	}
+	// for (int i = 0; i < BCx; i++) for (int j = 0; j < BCy; j++) {
+	// 	int x = i + Cx + Sx, y = j + Cy + Sy;
+	// 	if (x < N && y < M) C[x * M + y] = Creg[i][j];
+	// }
 }
 
 void Matmul(int N, int M, int K) {
@@ -83,7 +83,6 @@ void Matmul(int N, int M, int K) {
 
 	for (int _ = 0; _ < 3; _++) {
 		Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
-		CUDA_CHECK(cudaGetLastError());
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
