@@ -112,7 +112,6 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaFreeHost(A));
 	CUDA_CHECK(cudaFreeHost(B));
 	CUDA_CHECK(cudaFreeHost(C));
-	delete[] ans;
 }
 
 int main() {
