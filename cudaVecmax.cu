@@ -76,7 +76,7 @@ void Vecmaxreduce(int N) {
 
 	auto start = chrono::high_resolution_clock::now();
 	int M = N; while (M > 1) {
-		int M2 = cuda::ceil_div(N, threads);
+		int M2 = cuda::ceil_div(M, threads);
 		int blocks = min(M2, 2560 * 4); // tesla T4
 		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, M);
 		CUDA_CHECK(cudaDeviceSynchronize());
