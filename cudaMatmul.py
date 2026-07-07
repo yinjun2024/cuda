@@ -4,14 +4,14 @@ import time
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"device : {device}")
 
-size = 4096
+size = 1 << 13
 a = torch.randn(size, size, device=device)
 b = torch.randn(size, size, device=device)
 
-for _ in range(3):
+for _ in range(15):
     torch.mm(a, b)
+    torch.cuda.synchronize() if device.type == "cuda" else None
 
-torch.cuda.synchronize() if device.type == "cuda" else None
 start = time.time()
 
 c = torch.matmul(a, b)

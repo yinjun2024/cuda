@@ -82,7 +82,7 @@ void Matmul(int N, int M, int K) {
 	constexpr int BN = 128, BM = 128, BK = 8, BL = 16;
 	dim3 blocks(cuda::ceil_div(N, BN), cuda::ceil_div(M, BM));
 
-	for (int _ = 0; _ < 3; _++) {
+	for (int _ = 0; _ < 15; _++) {
 		Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
@@ -103,5 +103,5 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	Matmul(1 << 12, 1 << 12, 1 << 12);
+	Matmul(1 << 13, 1 << 13, 1 << 13);
 }
