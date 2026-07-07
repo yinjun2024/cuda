@@ -79,7 +79,7 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
 	
 	constexpr int BN = 128, BM = 128, BK = 8, BL = 16;
-	dim3 blocks(cuda::ceil_div(N, blockSize), cuda::ceil_div(M, blockSize));
+	dim3 blocks(cuda::ceil_div(N, BN), cuda::ceil_div(M, BM));
 
 	for (int _ = 0; _ < 3; _++) {
 		Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
