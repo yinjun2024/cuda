@@ -12,20 +12,20 @@ using namespace std;
     } \
 } while(0)
 
-template<int BN, int BM, int BK, int B>
+template<int BN, int BM, int BK, int BL>
 __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
-	// ensure : threads(B * B), blocks(N / BN, M / BM)
+	// ensure : threads(BL * BL), blocks(N / BN, M / BM)
 	// recommend : <128, 128, 8, 16>
 
-	constexpr int BAy = BK, BAx = B * B / BAy;
-	constexpr int BBx = BK, BBy = B * B / BBx;
-	constexpr int BCx = BN / B, BCy = BM / B;
+	constexpr int BAy = BK, BAx = BL * BL / BAy;
+	constexpr int BBx = BK, BBy = BL * BL / BBx;
+	constexpr int BCx = BN / BL, BCy = BM / BL;
 	constexpr int CA = BN / BAx, CB = BM / BBy;
 
 	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
 	int Bx = threadIdx.x / BBy, By = threadIdx.x % BBy;
-	int Cx = threadIdx.x / B, Cy = threadIdx.x % B;
-	Cx *= B; Cy *= B;
+	int Cx = threadIdx.x / BL, Cy = threadIdx.x % BL;
+	Cx *= BL; Cy *= BL;
 	int Sx = blockIdx.x * BN, Sy = blockIdx.y * BM;
 	
 	__shared__ float As[BN][BK], Bs[BK][BM];
@@ -78,17 +78,16 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
 	
-	constexpr int blockSize = 16;
-	dim3 threads(blockSize, blockSize);
+	constexpr int BN = 128, BM = 128, BK = 8, BL = 16;
 	dim3 blocks(cuda::ceil_div(N, blockSize), cuda::ceil_div(M, blockSize));
 
 	for (int _ = 0; _ < 3; _++) {
-		Matmul<blockSize><<<blocks, threads>>>(devA, devB, devC, N, M, K);
+		Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
 	auto start = chrono::high_resolution_clock::now();
-	Matmul<blockSize><<<blocks, threads>>>(devA, devB, devC, N, M, K);
+	Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	auto end = chrono::high_resolution_clock::now();
 	chrono::duration<double, milli> dur = end - start;
