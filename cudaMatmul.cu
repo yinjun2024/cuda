@@ -83,6 +83,7 @@ void Matmul(int N, int M, int K) {
 
 	for (int _ = 0; _ < 3; _++) {
 		Matmul<BN, BM, BK, BL><<<blocks, BL * BL>>>(devA, devB, devC, N, M, K);
+		CUDA_CHECK(cudaGetLastError());
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
