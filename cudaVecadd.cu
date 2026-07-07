@@ -94,6 +94,7 @@ void explicitMem(int N) {
 	cudaFreeHost(A);
 	cudaFreeHost(B);
 	cudaFreeHost(C);
+	delete[] ans;
 }
 
 /*

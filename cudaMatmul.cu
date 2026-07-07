@@ -63,11 +63,12 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 
 template<int BN, int BM, int BK, int BS>
 void Matmul(int N, int M, int K) {
-	float *A, *B;
+	float *A, *B, *C;
 	float *devA, *devB, *devC;
 
 	CUDA_CHECK(cudaMallocHost(&A, N * K * sizeof(float)));
 	CUDA_CHECK(cudaMallocHost(&B, K * M * sizeof(float)));
+	CUDA_CHECK(cudaMallocHost(&C, N * M * sizeof(float)));
 	CUDA_CHECK(cudaMalloc(&devA, N * K * sizeof(float)));
 	CUDA_CHECK(cudaMalloc(&devB, K * M * sizeof(float)));
 	CUDA_CHECK(cudaMalloc(&devC, N * M * sizeof(float)));
@@ -94,12 +95,27 @@ void Matmul(int N, int M, int K) {
 	chrono::duration<double, milli> dur = end - start;
 	printf("time used : %lf ms\n", dur.count());
 
+	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
+	
+	float *ans = new float[N * M];
+	memset(ans, 0, N * M * sizeof(float));
+	for (int i = 0; i < N; i++) for (int j = 0; j < K; j++) for (int k = 0; k < M; k++) {
+		ans[i * M + k] += A[i * K + j] * B[j * M + k];
+	}
+
+	bool cmp = 1; for (int _ = 0; _ < N * M; _++) {
+		if (fabs(C[_] - ans[_]) > 1e-9) {cmp = 0; break;}
+	}
+	if (cmp) fprintf(stderr, "Correct!\n");
+	else fprintf(stderr, "Result Mismatch!\n");
 
 	CUDA_CHECK(cudaFree(devA));
 	CUDA_CHECK(cudaFree(devB));
 	CUDA_CHECK(cudaFree(devC));
 	CUDA_CHECK(cudaFreeHost(A));
 	CUDA_CHECK(cudaFreeHost(B));
+	CUDA_CHECK(cudaFreeHost(C));
+	delete[] ans;
 }
 
 int main() {
