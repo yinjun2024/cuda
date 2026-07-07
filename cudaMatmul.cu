@@ -102,8 +102,48 @@ void Matmul(int N, int M, int K) {
 	CUDA_CHECK(cudaFreeHost(B));
 }
 
-
 void Matmul2(int N, int M, int K) {
+	float *A, *B;
+	float *devA, *devB, *devC;
+
+	CUDA_CHECK(cudaMallocHost(&A, N * K * sizeof(float)));
+	CUDA_CHECK(cudaMallocHost(&B, K * M * sizeof(float)));
+	CUDA_CHECK(cudaMalloc(&devA, N * K * sizeof(float)));
+	CUDA_CHECK(cudaMalloc(&devB, K * M * sizeof(float)));
+	CUDA_CHECK(cudaMalloc(&devC, N * M * sizeof(float)));
+
+	mt19937 rnd(123);
+	auto distr = uniform_real_distribution<float>();
+	for (int i = 0; i < N * K; i++) A[i] = distr(rnd);
+	for (int i = 0; i < K * M; i++) B[i] = distr(rnd);
+
+	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
+	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
+	
+	constexpr int BN = 64, BM = 64, BK = 16, BS = 16;
+	dim3 blocks(cuda::ceil_div(N, BN), cuda::ceil_div(M, BM));
+
+	for (int _ = 0; _ < 15; _++) {
+		Matmul<BN, BM, BK, BS><<<blocks, BS * BS>>>(devA, devB, devC, N, M, K);
+		CUDA_CHECK(cudaDeviceSynchronize());
+	}
+
+	auto start = chrono::high_resolution_clock::now();
+	Matmul<BN, BM, BK, BS><<<blocks, BS * BS>>>(devA, devB, devC, N, M, K);
+	CUDA_CHECK(cudaDeviceSynchronize());
+	auto end = chrono::high_resolution_clock::now();
+	chrono::duration<double, milli> dur = end - start;
+	printf("time used : %lf ms\n", dur.count());
+
+
+	CUDA_CHECK(cudaFree(devA));
+	CUDA_CHECK(cudaFree(devB));
+	CUDA_CHECK(cudaFree(devC));
+	CUDA_CHECK(cudaFreeHost(A));
+	CUDA_CHECK(cudaFreeHost(B));
+}
+
+void Matmul3(int N, int M, int K) {
 	float *A, *B;
 	float *devA, *devB, *devC;
 
@@ -147,4 +187,5 @@ void Matmul2(int N, int M, int K) {
 int main() {
 	Matmul(1 << 13, 1 << 13, 1 << 13);
 	Matmul2(1 << 13, 1 << 13, 1 << 13);
+	Matmul3(1 << 13, 1 << 13, 1 << 13);
 }
