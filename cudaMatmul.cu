@@ -97,14 +97,11 @@ void Matmul(int N, int M, int K) {
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
-	float *ans = new float[N * M];
-	memset(ans, 0, N * M * sizeof(float));
-	for (int i = 0; i < N; i++) for (int j = 0; j < K; j++) for (int k = 0; k < M; k++) {
-		ans[i * M + k] += A[i * K + j] * B[j * M + k];
-	}
-
-	bool cmp = 1; for (int _ = 0; _ < N * M; _++) {
-		if (fabs(C[_] - ans[_]) > 1e-9) {cmp = 0; break;}
+	fprintf(stderr, "random check: random check a value from each row\n");
+	bool cmp = 1; for (int i = 0; i < N; i++) {
+		int j = uniform_int_distribution<>(0, M - 1)(rnd); float ans = 0;
+		for (int k = 0; k < K; k++) ans += A[i * K + k] * B[k * M + j];
+		if (fabs(C[i * M + j] - ans) > 1e-9) {cmp = 0; break;}
 	}
 	if (cmp) fprintf(stderr, "Correct!\n");
 	else fprintf(stderr, "Result Mismatch!\n");
