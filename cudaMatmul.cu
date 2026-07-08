@@ -26,11 +26,12 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// static_assert(BN % BAx == 0);
 	// static_assert(BM % BBy == 0);
 	constexpr int CA = BN / BAx, CB = BM / BBy;
+	constexpr int WarpRow = BM / BY / WY;
 
 	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
 	int Bx = threadIdx.x / BBy, By = threadIdx.x % BBy;
-	int Wx = threadIdx.x / (WX * WY), Wy = threadIdx.x % (WX * WY);
-	int Cx = Wx / (BM / WY) * WX + Wy / WY, Cy = Wx % (BM / WY) * WY + Wy % WY;
+	int Warp = threadIdx.x / (WX * WY), Lane = threadIdx.x % (WX * WY);
+	int Cx = Warp / WarpRow * WX + Lane / WY, Cy = Warp % WarpRow * WY + Lane % WY;
 	Cx *= BX; Cy *= BY;
 	int Sx = blockIdx.x * BN, Sy = blockIdx.y * BM;
 	
