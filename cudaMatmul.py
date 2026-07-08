@@ -10,8 +10,8 @@ b = torch.randn(size, size, device=device)
 
 for _ in range(15):
     torch.mm(a, b)
-    torch.cuda.synchronize() if device.type == "cuda" else None
 
+torch.cuda.synchronize() if device.type == "cuda" else None
 start = time.time()
 
 c = torch.matmul(a, b)
