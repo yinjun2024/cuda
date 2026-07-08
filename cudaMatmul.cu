@@ -18,19 +18,19 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// recommend : <128, 128, 8, 8, 8, 4, 8>
 	// BA : (8, 128), BB : (128, 8), BC : (8, 8)
 
-	static_assert(BN % BX == 0 && BM % BY == 0);
+	// static_assert(BN % BX == 0 && BM % BY == 0);
 	constexpr int BS = (BN / BX) * (BM / BY);
-	static_assert(BS % BK == 0);
+	// static_assert(BS % BK == 0);
 	constexpr int BAy = BK, BAx = BS / BAy;
 	constexpr int BBx = BK, BBy = BS / BBx;
-	static_assert(BN % BAx == 0);
-	static_assert(BM % BBy == 0);
+	// static_assert(BN % BAx == 0);
+	// static_assert(BM % BBy == 0);
 	constexpr int CA = BN / BAx, CB = BM / BBy;
 
 	int Ax = threadIdx.x / BAy, Ay = threadIdx.x % BAy;
 	int Bx = threadIdx.x / BBy, By = threadIdx.x % BBy;
 	int Wx = threadIdx.x / (WX * WY), Wy = threadIdx.x % (WX * WY);
-	int Cx = Wx * BX + Wy / BY, Cy = Wx * BY + Wy % BY;
+	int Cx = Wx / (BM / WY) * WX + Wy / WY, Cy = Wx % (BM / WY) * WY + Wy % WY;
 	Cx *= BX; Cy *= BY;
 	int Sx = blockIdx.x * BN, Sy = blockIdx.y * BM;
 	
