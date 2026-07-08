@@ -105,8 +105,8 @@ void Matmul(int N, int M, int K) {
 	
 	fprintf(stderr, "random check: random check a value from each row\n");
 	bool cmp = 1; for (int i = 0; i < N; i++) {
-		int j = uniform_int_distribution<>(0, M - 1)(rnd); float ans = 0;
-		for (int k = 0; k < K; k++) ans += A[i * K + k] * B[k * M + j];
+		int j = uniform_int_distribution<>(0, M - 1)(rnd); double ans = 0;
+		for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
 		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-4) {
 			cmp = 0;
 			printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
