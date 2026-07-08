@@ -15,7 +15,7 @@ using namespace std;
 template<int BN, int BM, int BK, int BX, int BY, int WX, int WY>
 __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	// ensure : threads(BS * BS), blocks(ceil(N / BN), ceil(M / BM))
-	// recommend : <128, 128, 8, 8, 4, 8>
+	// recommend : <128, 128, 8, 8, 8, 4, 8>
 	// BA : (8, 128), BB : (128, 8), BC : (8, 8)
 
 	static_assert(BN % BX == 0 && BM % BY == 0);
@@ -126,7 +126,7 @@ void Matmul(int N, int M, int K) {
 
 int main() {
 	const int S = 1 << 13;
-	Matmul<128, 128, 8, 8, 4, 8>(S, S, S);
+	Matmul<128, 128, 8, 8, 8, 4, 8>(S, S, S);
 	// Matmul<64, 64, 16, 16>(1 << 13, 1 << 13, 1 << 13);
 	// Matmul<64, 64, 16, 32>(1 << 13, 1 << 13, 1 << 13);
 }
