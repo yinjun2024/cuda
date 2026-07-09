@@ -1,8 +1,7 @@
 import torch
-import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"device : {device}")
+# print(f"device : {device}")
 
 size = 1 << 27
 a = torch.randn(size, device=device)
@@ -23,6 +22,6 @@ end_event.record()
 torch.cuda.synchronize() if device.type == "cuda" else None
 
 
-print(f"result(sliced) : \n{c[:5]}")
+# print(f"result(sliced) : \n{c[:5]}")
 
 print(f"timeused : {start_event.elapsed_time(end_event):.6f} ms")
