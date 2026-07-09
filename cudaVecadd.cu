@@ -72,13 +72,19 @@ void explicitMem(int N) {
 		vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
 		cudaDeviceSynchronize();
 	}
+	
+	cudaEvent_t start, stop;
+    float elapsedTime = 0.0;
+	cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
 
-	auto start = chrono::high_resolution_clock::now();
 	vecAdd<<<blocks, threads>>>(devA, devB, devC, N);
-	cudaDeviceSynchronize();
-	auto end = chrono::high_resolution_clock::now();
-	chrono::duration<double, milli> dur = end - start;
-	printf("time used : %lf ms\n", dur.count());
+	
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsedTime, start, stop);
+	printf("time used : %f ms\n", elapsedTime);
 
 	cudaMemcpy(C, devC, N * sizeof(float), cudaMemcpyDefault);
 

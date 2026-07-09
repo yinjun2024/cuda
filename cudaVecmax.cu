@@ -51,7 +51,7 @@ __global__ void maxReduce(float *a, int n) {
 }
 
 template<int threads>
-void Vecmaxreduce(int N) {
+void vecMax(int N) {
 	float *A;
 	float *devA;
 
@@ -74,7 +74,12 @@ void Vecmaxreduce(int N) {
 		}
 	}
 
-	auto start = chrono::high_resolution_clock::now();
+	cudaEvent_t start, stop;
+    float elapsedTime = 0.0;
+	cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
+
 	int M = N; while (M > 1) {
 		int M2 = cuda::ceil_div(M, threads);
 		int blocks = min(M2, 2560 * 4); // tesla T4
@@ -82,9 +87,11 @@ void Vecmaxreduce(int N) {
 		CUDA_CHECK(cudaDeviceSynchronize());
 		M = M2;
 	}
-	auto end = chrono::high_resolution_clock::now();
-	chrono::duration<double, milli> dur = end - start;
-	printf("time used : %lf ms\n", dur.count());
+	
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsedTime, start, stop);
+	printf("time used : %f ms\n", elapsedTime);
 
 	float result;
 	CUDA_CHECK(cudaMemcpy(&result, devA, sizeof(float), cudaMemcpyDefault));
@@ -100,5 +107,5 @@ void Vecmaxreduce(int N) {
 }
 
 int main() {
-	Vecmaxreduce<128>(1 << 27);
+	vecMax<128>(1 << 27);
 }

@@ -11,15 +11,17 @@ start_event = torch.cuda.Event(enable_timing=True)
 end_event = torch.cuda.Event(enable_timing=True)
 
 for _ in range(15):
-    torch.max(a)
+    with torch.no_grad():
+        torch.max(a)
     torch.cuda.synchronize() if device.type == "cuda" else None
 
 start_event.record()
-c = torch.max(a)
+with torch.no_grad():
+    c = torch.max(a)
 end_event.record()
-
 torch.cuda.synchronize() if device.type == "cuda" else None
+
 
 print(f"result : \n{c}")
 
-print(f"timeused : {start_event.elapsed_time(end_event):.6f} ms")  # 结果会接近 1.54ms
+print(f"timeused : {start_event.elapsed_time(end_event):.6f} ms")

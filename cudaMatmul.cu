@@ -80,15 +80,21 @@ void Matmul(int N, int M, int K) {
 
 	for (int _ = 0; _ < 15; _++) {
 		Matmul<<<blocks, 256>>>(devA, devB, devC, N, M, K);
+		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 	
-	CUDA_CHECK(cudaDeviceSynchronize());
-	auto start = chrono::high_resolution_clock::now();
+	cudaEvent_t start, stop;
+    float elapsedTime = 0.0;
+	cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
+
 	Matmul<<<blocks, 256>>>(devA, devB, devC, N, M, K);
-	CUDA_CHECK(cudaDeviceSynchronize());
-	auto end = chrono::high_resolution_clock::now();
-	chrono::duration<double, milli> dur = end - start;
-	printf("time used : %lf ms\n", dur.count());
+	
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsedTime, start, stop);
+	printf("time used : %f ms\n", elapsedTime);
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
@@ -98,7 +104,7 @@ void Matmul(int N, int M, int K) {
 		for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
 		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
 			cmp = 0;
-			printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
+			// printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
 			// break;
 		}
 	}
