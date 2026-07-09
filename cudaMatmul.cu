@@ -31,10 +31,10 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			AsT[Ax << 2 | 3][Ay] = val.w;
 		}
 		else {
-			AsT[Ax << 2 | 4][Ay] = 0;
-			AsT[Ax << 2 | 5][Ay] = 0;
-			AsT[Ax << 2 | 6][Ay] = 0;
-			AsT[Ax << 2 | 7][Ay] = 0;
+			AsT[Ax << 2 | 0][Ay] = 0;
+			AsT[Ax << 2 | 1][Ay] = 0;
+			AsT[Ax << 2 | 2][Ay] = 0;
+			AsT[Ax << 2 | 3][Ay] = 0;
 		}
 		x = Bp | Bx << 2, y = By | k;
 		if (y < K && x < M) {
@@ -45,10 +45,10 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			Bs[By][Bx << 2 | 3] = val.w;
 		}
 		else {
-			Bs[By][Bx << 2 | 4] = 0;
-			Bs[By][Bx << 2 | 5] = 0;
-			Bs[By][Bx << 2 | 6] = 0;
-			Bs[By][Bx << 2 | 7] = 0;
+			Bs[By][Bx << 2 | 0] = 0;
+			Bs[By][Bx << 2 | 1] = 0;
+			Bs[By][Bx << 2 | 2] = 0;
+			Bs[By][Bx << 2 | 3] = 0;
 		}
 		__syncthreads();
 
