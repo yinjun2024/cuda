@@ -16,13 +16,13 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 
 	// restriction : N, M, K must aligned with 4
 
-	__shared__ float AsT[8][128], Bs[8][128 + 4];
+	__shared__ float AsT[8][128], Bs[8][128];
 	float Areg[8], Breg[8], Creg[8][8] = {0}; float4 val; int x, y;
 	int Ap = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
-	int Bp = blockIdx.x << 7, Bx = threadIdx.x >> 3, By = threadIdx.x & 7;
+	int Bp = blockIdx.x << 7, Bx = threadIdx.x & 127, By = threadIdx.x >> 7;
 	int Cx = (threadIdx.x >> 4) << 3, Cy = (threadIdx.x & 15) << 3;
 	for (int k = 0; k < K; k += 8) {
-		x = Ax << 2 | k, y = Ap | Ay;
+		x = k | Ax << 2, y = Ap | Ay;
 		if (y < N && x < K) {
 			val = reinterpret_cast<float4*>(A + y * K + x)[0];
 			AsT[Ax << 2 | 0][Ay] = val.x;
@@ -36,23 +36,14 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			AsT[Ax << 2 | 2][Ay] = 0;
 			AsT[Ax << 2 | 3][Ay] = 0;
 		}
-		x = Bp | Bx << 2, y = By | k;
-		if (y < K && x < M) {
-			val = reinterpret_cast<float4*>(B + y * M + x)[0];
-			Bs[By][Bx << 2 | 0] = val.x;
-			Bs[By][Bx << 2 | 1] = val.y;
-			Bs[By][Bx << 2 | 2] = val.z;
-			Bs[By][Bx << 2 | 3] = val.w;
-		}
-		else {
-			Bs[By][Bx << 2 | 0] = 0;
-			Bs[By][Bx << 2 | 1] = 0;
-			Bs[By][Bx << 2 | 2] = 0;
-			Bs[By][Bx << 2 | 3] = 0;
+		for (int i = 0; i < 4; i++) {
+			x = Bp | Bx, y = k | By << 2 | i;
+			if (y < K && x < M) Bs[By << 2 | i][Bx] = B[y * M + x];
+			else Bs[By << 2 | i][Bx] = 0;
 		}
 		__syncthreads();
 
-		// #pragma unroll
+		#pragma unroll
 		for (int k_ = 0; k_ < 8; k_++) {
 			val = reinterpret_cast<float4*>(AsT[k_] + Cx)[0];
 			Areg[0] = val.x;
@@ -74,8 +65,12 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			Breg[5] = val.y;
 			Breg[6] = val.z;
 			Breg[7] = val.w;
-			for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
-				Creg[i][j] += Areg[i] * Breg[j];
+			#pragma unroll
+			for (int i = 0; i < 8; i++) {
+				#pragma unroll
+				for (int j = 0; j < 8; j++) {
+					Creg[i][j] += Areg[i] * Breg[j];
+				}
 			}
 		}
 		__syncthreads();
