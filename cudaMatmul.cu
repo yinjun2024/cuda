@@ -65,9 +65,9 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			Breg[5] = val.y;
 			Breg[6] = val.z;
 			Breg[7] = val.w;
-			#pragma unroll
+			// #pragma unroll
 			for (int i = 0; i < 8; i++) {
-				#pragma unroll
+				// #pragma unroll
 				for (int j = 0; j < 8; j++) {
 					Creg[i][j] += Areg[i] * Breg[j];
 				}
