@@ -13,73 +13,48 @@ using namespace std;
 } while(0)
 
 __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
+    // blocks(ceil_div(N, 128), ceil_div(M, 128)), threads(256)
+    // restriction : N, M, K must aligned with 128 !!!
 
-	// restriction : N, M, K must aligned with 4
+    __shared__ float AsT[8][128], Bs[8][128];
+    float Areg[8], Breg[8], Creg[8][8] = {0}; float4 val; int x, y;
+    int Apos = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
+    int Bpos = blockIdx.x << 7, Bx = threadIdx.x & 31, By = threadIdx.x >> 5;
+    int Warp = threadIdx.x >> 5, Lane = threadIdx.x & 31;
+    int Cx = (Warp & 1) << 3 | Lane >> 3 << 1 | Lane & 1;
+    int Cy = Warp >> 1 << 2 | (Lane >> 1 & 3); // Z-Shape
+    for (int k = 0; k < K; k += 8) {
+        x = k | Ax << 2, y = Apos | Ay;
+        val = reinterpret_cast<float4*>(A + y * K + x)[0];
+        AsT[Ax << 2 | 0][Ay] = val.x;
+        AsT[Ax << 2 | 1][Ay] = val.y;
+        AsT[Ax << 2 | 2][Ay] = val.z;
+        AsT[Ax << 2 | 3][Ay] = val.w;
+        x = Bpos | Bx << 2, y = k | By;
+        reinterpret_cast<float4*>(Bs[By] + (Bx << 2))[0] = reinterpret_cast<float4*>(B + y * M + x)[0];
+        __syncthreads();
 
-	__shared__ float AsT[8][128], Bs[8][128];
-	float Areg[8], Breg[8], Creg[8][8] = {0}; float4 val; int x, y;
-	int Ap = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
-	int Bp = blockIdx.x << 7, Bx = threadIdx.x & 127, By = threadIdx.x >> 7;
-	int Cx = (threadIdx.x >> 4) << 3, Cy = (threadIdx.x & 15) << 3;
-	for (int k = 0; k < K; k += 8) {
-		x = k | Ax << 2, y = Ap | Ay;
-		if (y < N && x < K) {
-			val = reinterpret_cast<float4*>(A + y * K + x)[0];
-			AsT[Ax << 2 | 0][Ay] = val.x;
-			AsT[Ax << 2 | 1][Ay] = val.y;
-			AsT[Ax << 2 | 2][Ay] = val.z;
-			AsT[Ax << 2 | 3][Ay] = val.w;
-		}
-		else {
-			AsT[Ax << 2 | 0][Ay] = 0;
-			AsT[Ax << 2 | 1][Ay] = 0;
-			AsT[Ax << 2 | 2][Ay] = 0;
-			AsT[Ax << 2 | 3][Ay] = 0;
-		}
-		for (int i = 0; i < 4; i++) {
-			x = Bp | Bx, y = k | By << 2 | i;
-			if (y < K && x < M) Bs[By << 2 | i][Bx] = B[y * M + x];
-			else Bs[By << 2 | i][Bx] = 0;
-		}
-		__syncthreads();
+        #pragma unroll
+        for (int k_ = 0; k_ < 8; k_++) {
+            reinterpret_cast<float4*>(Areg)[0] = reinterpret_cast<float4*>(AsT[k_] + (Cx << 2))[0];
+            reinterpret_cast<float4*>(Areg)[1] = reinterpret_cast<float4*>(AsT[k_] + (Cx << 2 | 64))[0];
+            reinterpret_cast<float4*>(Breg)[0] = reinterpret_cast<float4*>(Bs[k_] + (Cy << 2))[0];
+            reinterpret_cast<float4*>(Breg)[1] = reinterpret_cast<float4*>(Bs[k_] + (Cy << 2 | 64))[0];
+            #pragma unroll
+            for (int i = 0; i < 8; i++) {
+                #pragma unroll
+                for (int j = 0; j < 8; j++) {
+                    Creg[i][j] += Areg[i] * Breg[j];
+                }
+            }
+        }
+        __syncthreads();
+    }
 
-		#pragma unroll
-		for (int k_ = 0; k_ < 8; k_++) {
-			val = reinterpret_cast<float4*>(AsT[k_] + Cx)[0];
-			Areg[0] = val.x;
-			Areg[1] = val.y;
-			Areg[2] = val.z;
-			Areg[3] = val.w;
-			val = reinterpret_cast<float4*>(AsT[k_] + Cx)[1];
-			Areg[4] = val.x;
-			Areg[5] = val.y;
-			Areg[6] = val.z;
-			Areg[7] = val.w;
-			val = reinterpret_cast<float4*>(Bs[k_] + Cy)[0];
-			Breg[0] = val.x;
-			Breg[1] = val.y;
-			Breg[2] = val.z;
-			Breg[3] = val.w;
-			val = reinterpret_cast<float4*>(Bs[k_] + Cy)[1];
-			Breg[4] = val.x;
-			Breg[5] = val.y;
-			Breg[6] = val.z;
-			Breg[7] = val.w;
-			// #pragma unroll
-			for (int i = 0; i < 8; i++) {
-				// #pragma unroll
-				for (int j = 0; j < 8; j++) {
-					Creg[i][j] += Areg[i] * Breg[j];
-				}
-			}
-		}
-		__syncthreads();
-	}
-
-	for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
-		int x = Ap | Cx | i, y = Bp | Cy | j;
-		if (x < N && y < M) C[x * M + y] = Creg[i][j];
-	}
+    for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
+        int x = Apos | Cx | i >> 2 << 6 | (i & 3), y = Bpos | Cy | j >> 2 << 6 | (j & 3);
+        C[x * M + y] = Creg[i][j];
+    }
 }
 
 void Matmul(int N, int M, int K) {
