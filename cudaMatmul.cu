@@ -16,7 +16,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 
 	// restriction : N, M, K must aligned with 4
 
-	__shared__ float AsT[8][128], Bs[8][128 + 1];
+	__shared__ float AsT[8][128], Bs[8][128 + 4];
 	float Areg[8], Breg[8], Creg[8][8] = {0}; float4 val; int x, y;
 	int Ap = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
 	int Bp = blockIdx.x << 7, Bx = threadIdx.x >> 3, By = threadIdx.x & 7;
