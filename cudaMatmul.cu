@@ -18,11 +18,11 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 
 	__shared__ float AsT[8][128], Bs[8][128 + 1];
 	float Areg[8], Breg[8], Creg[8][8] = {0}; float4 val; int x, y;
-	int As = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
-	int Bs = blockIdx.x << 7, Bx = threadIdx.x >> 3, By = threadIdx.x & 7;
+	int Ap = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
+	int Bp = blockIdx.x << 7, Bx = threadIdx.x >> 3, By = threadIdx.x & 7;
 	int Cx = (threadIdx.x >> 4) << 3, Cy = (threadIdx.x & 15) << 3;
 	for (int k = 0; k < K; k += 8) {
-		x = Ax << 2 | k, y = As | Ay;
+		x = Ax << 2 | k, y = Ap | Ay;
 		if (y < N && x < K) {
 			val = reinterpret_cast<float4*>(A + y * K + x)[0];
 			AsT[Ax << 2 | 0][Ay] = val.x;
@@ -36,7 +36,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 			AsT[Ax << 2 | 6][Ay] = 0;
 			AsT[Ax << 2 | 7][Ay] = 0;
 		}
-		x = Bs | Bx << 2, y = By | k;
+		x = Bp | Bx << 2, y = By | k;
 		if (y < K && x < M) {
 			val = reinterpret_cast<float4*>(B + y * M + x)[0];
 			Bs[By][Bx << 2 | 0] = val.x;
@@ -82,7 +82,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
 	}
 
 	for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
-		int x = As | Cx | i, y = Bs | Cy | j;
+		int x = Ap | Cx | i, y = Bp | Cy | j;
 		if (x < N && y < M) C[x * M + y] = Creg[i][j];
 	}
 }
