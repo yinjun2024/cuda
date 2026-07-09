@@ -52,7 +52,7 @@ __global__ void Matmul(float *A, float *B, float *C, int N, int M, int K) {
     }
 
     for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
-        int x = Apos | Cx | i >> 2 << 6 | (i & 3), y = Bpos | Cy | j >> 2 << 6 | (j & 3);
+        int x = Apos | i >> 2 << 6 | Cx << 2 | (i & 3), y = Bpos | j >> 2 << 6 | Cy << 2 | (j & 3);
         C[x * M + y] = Creg[i][j];
     }
 }
