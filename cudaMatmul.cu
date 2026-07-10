@@ -109,6 +109,21 @@ __global__ void Matmul_async(float *A, float *B, float *C, int N, int M, int K) 
 		reinterpret_cast<float4*>(Bs[write][By] + (Bx << 2))[0] = valB;
         __syncthreads(); write ^= 1; read ^= 1;
     }
+	
+	#pragma unroll
+	for (int k_ = 0; k_ < 8; k_++) {
+		reinterpret_cast<float4*>(Areg)[0] = reinterpret_cast<float4*>(AsT[read][k_] + (Cx << 2))[0];
+		reinterpret_cast<float4*>(Areg)[1] = reinterpret_cast<float4*>(AsT[read][k_] + (Cx << 2 | 64))[0];
+		reinterpret_cast<float4*>(Breg)[0] = reinterpret_cast<float4*>(Bs[read][k_] + (Cy << 2))[0];
+		reinterpret_cast<float4*>(Breg)[1] = reinterpret_cast<float4*>(Bs[read][k_] + (Cy << 2 | 64))[0];
+		#pragma unroll
+		for (int i = 0; i < 8; i++) {
+			#pragma unroll
+			for (int j = 0; j < 8; j++) {
+				Creg[i][j] += Areg[i] * Breg[j];
+			}
+		}
+	}
 
     for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
         int x = Apos | i >> 2 << 6 | Cx << 2 | (i & 3), y = Bpos | j >> 2 << 6 | Cy << 2 | (j & 3);
@@ -157,14 +172,14 @@ void Matmul(int N, int M, int K) {
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
-	bool cmp = 1; for (int i = 0; i < N; i += 4) {
-		// int j = uniform_int_distribution<>(0, M - 1)(rnd); {
-		for (int j = 0; j < M; j += 4) {
+	bool cmp = 1; for (int i = 0; i < N; i++) {
+		int j = uniform_int_distribution<>(0, M - 1)(rnd); {
+		// for (int j = 0; j < M; j += 4) {
 			double ans = 0;
 			for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
 			if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
 				cmp = 0;
-				printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
+				// printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
 				// break;
 			}
 		}
@@ -181,7 +196,7 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	const int S = 1 << 7;
+	const int S = 1 << 13;
 	Matmul(S, S, S);
 	// Matmul<64, 64, 16, 16>(1 << 13, 1 << 13, 1 << 13);
 	// Matmul<64, 64, 16, 32>(1 << 13, 1 << 13, 1 << 13);
