@@ -61,42 +61,38 @@ __global__ void Matmul_async(float *A, float *B, float *C, int N, int M, int K) 
     // blocks(ceil_div(N, 128), ceil_div(M, 128)), threads(256)
     // restriction : N, M, K must aligned with 128 !!!
 
-    __shared__ float AsT[8][128], Bs[8][128];
-    float Areg[8], Breg[8], Creg[8][8] = {0}; float4 valA[2], valB[2]; int x, y;
+    __shared__ float AsT[2][8][128], Bs[2][8][128];
+    float Areg[8], Breg[8], Creg[8][8] = {0}; float4 valA, valB; int x, y;
     int Apos = blockIdx.y << 7, Ax = threadIdx.x >> 7, Ay = threadIdx.x & 127;
     int Bpos = blockIdx.x << 7, Bx = threadIdx.x & 31, By = threadIdx.x >> 5;
     int Warp = threadIdx.x >> 5, Lane = threadIdx.x & 31;
     int Cx = (Warp & 1) << 3 | Lane >> 3 << 1 | Lane & 1;
     int Cy = Warp >> 1 << 2 | (Lane >> 1 & 3); // Z-Shape
 
-	int op = 0;
+	int write = 0, read = 1;
 	x = Ax << 2, y = Apos | Ay;
-	valA[!op] = reinterpret_cast<float4*>(A + y * K + x)[0];
+	valA = reinterpret_cast<float4*>(A + y * K + x)[0];
     x = Bpos | Bx << 2, y = By;
-	valB[!op] = reinterpret_cast<float4*>(B + y * M + x)[0];
+	valB = reinterpret_cast<float4*>(B + y * M + x)[0];
+	AsT[write][Ax << 2 | 0][Ay] = valA.x;
+	AsT[write][Ax << 2 | 1][Ay] = valA.y;
+	AsT[write][Ax << 2 | 2][Ay] = valA.z;
+	AsT[write][Ax << 2 | 3][Ay] = valA.w;
+	reinterpret_cast<float4*>(Bs[write][By] + (Bx << 2))[0] = valB;
+	__syncthreads(); write ^= 1; read ^= 1;
 
-    for (int k = 0; k < K; k += 8) {
-		op ^= 1;
-
-		if (k + 8 < K) {
-			x = (k + 8) | Ax << 2, y = Apos | Ay;
-			valA[!op] = reinterpret_cast<float4*>(A + y * K + x)[0];
-			x = Bpos | Bx << 2, y = (k + 8) | By;
-			valB[!op] = reinterpret_cast<float4*>(B + y * M + x)[0];
-		}
-
-		AsT[Ax << 2 | 0][Ay] = valA[op].x;
-		AsT[Ax << 2 | 1][Ay] = valA[op].y;
-		AsT[Ax << 2 | 2][Ay] = valA[op].z;
-		AsT[Ax << 2 | 3][Ay] = valA[op].w;
-		reinterpret_cast<float4*>(Bs[By] + (Bx << 2))[0] = valB[op];
+    for (int k = 8; k < K; k += 8) {
+		x = k | Ax << 2, y = Apos | Ay;
+		valA = reinterpret_cast<float4*>(A + y * K + x)[0];
+		x = Bpos | Bx << 2, y = k | By;
+		valB = reinterpret_cast<float4*>(B + y * M + x)[0];
 
         #pragma unroll
         for (int k_ = 0; k_ < 8; k_++) {
-            reinterpret_cast<float4*>(Areg)[0] = reinterpret_cast<float4*>(AsT[k_] + (Cx << 2))[0];
-            reinterpret_cast<float4*>(Areg)[1] = reinterpret_cast<float4*>(AsT[k_] + (Cx << 2 | 64))[0];
-            reinterpret_cast<float4*>(Breg)[0] = reinterpret_cast<float4*>(Bs[k_] + (Cy << 2))[0];
-            reinterpret_cast<float4*>(Breg)[1] = reinterpret_cast<float4*>(Bs[k_] + (Cy << 2 | 64))[0];
+            reinterpret_cast<float4*>(Areg)[0] = reinterpret_cast<float4*>(AsT[read][k_] + (Cx << 2))[0];
+            reinterpret_cast<float4*>(Areg)[1] = reinterpret_cast<float4*>(AsT[read][k_] + (Cx << 2 | 64))[0];
+            reinterpret_cast<float4*>(Breg)[0] = reinterpret_cast<float4*>(Bs[read][k_] + (Cy << 2))[0];
+            reinterpret_cast<float4*>(Breg)[1] = reinterpret_cast<float4*>(Bs[read][k_] + (Cy << 2 | 64))[0];
             #pragma unroll
             for (int i = 0; i < 8; i++) {
                 #pragma unroll
@@ -105,7 +101,13 @@ __global__ void Matmul_async(float *A, float *B, float *C, int N, int M, int K) 
                 }
             }
         }
-        __syncthreads();
+
+		AsT[write][Ax << 2 | 0][Ay] = valA.x;
+		AsT[write][Ax << 2 | 1][Ay] = valA.y;
+		AsT[write][Ax << 2 | 2][Ay] = valA.z;
+		AsT[write][Ax << 2 | 3][Ay] = valA.w;
+		reinterpret_cast<float4*>(Bs[write][By] + (Bx << 2))[0] = valB;
+        __syncthreads(); write ^= 1; read ^= 1;
     }
 
     for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) {
