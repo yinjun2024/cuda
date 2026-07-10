@@ -163,7 +163,7 @@ void Matmul(int N, int M, int K) {
 		for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
 		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
 			cmp = 0;
-			// printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
+			printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
 			// break;
 		}
 	}
@@ -179,7 +179,7 @@ void Matmul(int N, int M, int K) {
 }
 
 int main() {
-	const int S = 1 << 13;
+	const int S = 1 << 7;
 	Matmul(S, S, S);
 	// Matmul<64, 64, 16, 16>(1 << 13, 1 << 13, 1 << 13);
 	// Matmul<64, 64, 16, 32>(1 << 13, 1 << 13, 1 << 13);
