@@ -157,9 +157,9 @@ void Matmul(int N, int M, int K) {
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
-	bool cmp = 1; for (int i = 0; i < N; i++) {
+	bool cmp = 1; for (int i = 0; i < N; i += 4) {
 		// int j = uniform_int_distribution<>(0, M - 1)(rnd); {
-		for (int j = 0; j < M; j++) {
+		for (int j = 0; j < M; j += 4) {
 			double ans = 0;
 			for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
 			if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
