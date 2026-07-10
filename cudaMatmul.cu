@@ -129,8 +129,8 @@ void Matmul(int N, int M, int K) {
 
 	mt19937 rnd(123);
 	auto distr = uniform_real_distribution<float>(-1, 1);
-	for (int i = 0; i < N * K; i++) A[i] = i == K + 1 ? 1 : 0;//distr(rnd);
-	for (int i = 0; i < K * M; i++) B[i] = i == 5 ? 1 : 0;//distr(rnd);
+	for (int i = 0; i < N * K; i++) A[i] = distr(rnd);
+	for (int i = 0; i < K * M; i++) B[i] = distr(rnd);
 
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
