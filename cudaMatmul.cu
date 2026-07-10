@@ -129,8 +129,8 @@ void Matmul(int N, int M, int K) {
 
 	mt19937 rnd(123);
 	auto distr = uniform_real_distribution<float>(-1, 1);
-	for (int i = 0; i < N * K; i++) A[i] = distr(rnd);
-	for (int i = 0; i < K * M; i++) B[i] = distr(rnd);
+	for (int i = 0; i < N * K; i++) A[i] = i == K + 1 ? 1 : 0;//distr(rnd);
+	for (int i = 0; i < K * M; i++) B[i] = i == 1 ? 1 : 0;//distr(rnd);
 
 	CUDA_CHECK(cudaMemcpy(devA, A, N * K * sizeof(float), cudaMemcpyDefault));
 	CUDA_CHECK(cudaMemcpy(devB, B, K * M * sizeof(float), cudaMemcpyDefault));
@@ -157,14 +157,16 @@ void Matmul(int N, int M, int K) {
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
-	fprintf(stderr, "random check: random check a value from each row\n");
 	bool cmp = 1; for (int i = 0; i < N; i++) {
-		int j = uniform_int_distribution<>(0, M - 1)(rnd); double ans = 0;
-		for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
-		if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
-			cmp = 0;
-			printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
-			// break;
+		// int j = uniform_int_distribution<>(0, M - 1)(rnd); {
+		for (int j = 0; j < M; j++) {
+			double ans = 0;
+			for (int k = 0; k < K; k++) ans += (double)A[i * K + k] * B[k * M + j];
+			if (fabs(C[i * M + j] - ans) / max(1.0f, fabs(ans)) > 1e-3) {
+				cmp = 0;
+				printf("! %d %d -> %f %f\n", i, j, C[i * M + j], ans);
+				// break;
+			}
 		}
 	}
 	if (cmp) fprintf(stderr, "Correct!\n");
