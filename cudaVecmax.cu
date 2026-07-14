@@ -64,7 +64,7 @@ void vecMax(int N) {
 
 	CUDA_CHECK(cudaMemcpy(devA, A, N * sizeof(float), cudaMemcpyDefault));
 
-	for (int _ = 0; _ < 15; _++) {
+	for (int _ = 0; _ < 16; _++) {
 		int M = N; while (M > 1) {
 			int M2 = cuda::ceil_div(M, threads);
 			int blocks = min(M2, 2560 * 4); // tesla T4
@@ -74,24 +74,31 @@ void vecMax(int N) {
 		}
 	}
 
-	cudaEvent_t start, stop;
-    float elapsedTime = 0.0;
-	cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-	cudaEventRecord(start, 0);
+	double sum = 0;
+	for (int _ = 0; _ < 16; _++) {
+		cudaEvent_t start, stop;
+		float elapsedTime = 0.0;
+		cudaEventCreate(&start);
+		cudaEventCreate(&stop);
+		cudaEventRecord(start, 0);
 
-	int M = N; while (M > 1) {
-		int M2 = cuda::ceil_div(M, threads);
-		int blocks = min(M2, 2560 * 4); // tesla T4
-		maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, M);
-		CUDA_CHECK(cudaDeviceSynchronize());
-		M = M2;
+		int M = N; while (M > 1) {
+			int M2 = cuda::ceil_div(M, threads);
+			int blocks = min(M2, 2560 * 4); // tesla T4
+			maxReduce<threads><<<blocks, threads, cuda::ceil_div(threads, 32)>>>(devA, M);
+			CUDA_CHECK(cudaDeviceSynchronize());
+			M = M2;
+		}
+		
+		cudaEventRecord(stop, 0);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&elapsedTime, start, stop);
+		cudaEventDestroy(start);
+		cudaEventDestroy(stop);
+		printf("time used : %f ms\n", elapsedTime);
+		sum += elapsedTime;
 	}
-	
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&elapsedTime, start, stop);
-	printf("time used : %f ms\n", elapsedTime);
+	printf("kernal time used avg : %lf ms\n", sum / 16);
 
 	float result;
 	CUDA_CHECK(cudaMemcpy(&result, devA, sizeof(float), cudaMemcpyDefault));

@@ -152,23 +152,30 @@ void Matmul(int N, int M, int K) {
 	
 	dim3 blocks(cuda::ceil_div(N, 128), cuda::ceil_div(M, 128));
 
-	for (int _ = 0; _ < 15; _++) {
+	for (int _ = 0; _ < 16; _++) {
 		Matmul_async<<<blocks, 256>>>(devA, devB, devC, N, M, K);
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 	
-	cudaEvent_t start, stop;
-    float elapsedTime = 0.0;
-	cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-	cudaEventRecord(start, 0);
+	double sum = 0;
+	for (int _ = 0; _ < 16; _++) {
+		cudaEvent_t start, stop;
+		float elapsedTime = 0.0;
+		cudaEventCreate(&start);
+		cudaEventCreate(&stop);
+		cudaEventRecord(start, 0);
 
-	Matmul_async<<<blocks, 256>>>(devA, devB, devC, N, M, K);
-	
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&elapsedTime, start, stop);
-	printf("time used : %f ms\n", elapsedTime);
+		Matmul_async<<<blocks, 256>>>(devA, devB, devC, N, M, K);
+		
+		cudaEventRecord(stop, 0);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&elapsedTime, start, stop);
+		cudaEventDestroy(start);
+		cudaEventDestroy(stop);
+		printf("time used : %f ms\n", elapsedTime);
+		sum += elapsedTime;
+	}
+	printf("kernal time used avg : %lf ms\n", sum / 16);
 
 	CUDA_CHECK(cudaMemcpy(C, devC, N * M * sizeof(float), cudaMemcpyDefault));
 	
